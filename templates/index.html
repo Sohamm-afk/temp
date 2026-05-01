@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ride Sharing Matcher</title>
+    <meta name="description" content="DSA Demo: Graph, Dijkstra Shortest Path, and Greedy Matching for Ride Sharing">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Ride Sharing Matcher</h1>
+        <p>DSA Demo &mdash; Graph + Dijkstra + Greedy Matching</p>
+        <div class="badge-row">
+            <span class="badge"><span class="dot dot-purple"></span> Graph</span>
+            <span class="badge"><span class="dot dot-green"></span> Dijkstra</span>
+            <span class="badge"><span class="dot dot-amber"></span> Greedy</span>
+        </div>
+    </div>
+
+    <!-- Graph Card -->
+    <div class="card">
+        <div class="card-title"><span class="icon">🗺️</span> Network Graph</div>
+        <pre id="graph-info">
+   A ───────(5)─────── B ───────(3)─────── D
+   │                   │                   │
+ (10)                 (2)                 (7)
+   │                   │                   │
+   C ───────(4)─────── E ───────(6)─────── F
+
+   Locations: A, B, C, D, E, F</pre>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card">
+        <div class="card-title"><span class="icon">🧑</span> Add Rider</div>
+
+        <div class="form-group">
+            <label for="rider-name">Rider Name</label>
+            <input type="text" id="rider-name" placeholder="e.g. Alice">
+        </div>
+
+        <div class="form-group">
+            <label for="start-loc">Start Location</label>
+            <select id="start-loc">
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+                <option value="E">E</option>
+                <option value="F">F</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="end-loc">End Location</label>
+            <select id="end-loc">
+                <option value="A">A</option>
+                <option value="B" selected>B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+                <option value="E">E</option>
+                <option value="F">F</option>
+            </select>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-primary" id="btn-add" onclick="addRider()">＋ Add Rider</button>
+            <button class="btn btn-secondary" id="btn-match" onclick="matchRiders()">⚡ Match Riders</button>
+        </div>
+
+        <div class="status-bar">
+            <span class="rider-count">Riders: <span id="rider-count-num">0</span></span>
+        </div>
+    </div>
+
+    <!-- Output Card -->
+    <div class="card">
+        <div class="card-title"><span class="icon">📋</span> Output</div>
+        <pre id="output">No riders added yet.</pre>
+    </div>
+
+</div>
+
+<!-- Toast container -->
+<div class="toast" id="toast"></div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
