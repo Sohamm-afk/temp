@@ -1,45 +1,90 @@
 // ============================================
-// Ride Sharing Matcher - Frontend JavaScript
+// Ride Sharing Matcher - Frontend Logic (Netlify Fix)
+// All logic moved to JS for serverless deployment
 // ============================================
 
-// ---------- Toast Notification ----------
-// Shows a temporary notification at the bottom-right
+// -----------------------------------------
+// DATA STORAGE
+// -----------------------------------------
+var riders = [];
+
+// -----------------------------------------
+// GRAPH STRUCTURE (Adjacency List)
+// -----------------------------------------
+const graph = {
+    'A': {'B': 5, 'C': 10},
+    'B': {'A': 5, 'D': 3, 'E': 2},
+    'C': {'A': 10, 'E': 4},
+    'D': {'B': 3, 'F': 7},
+    'E': {'B': 2, 'C': 4, 'F': 6},
+    'F': {'D': 7, 'E': 6}
+};
+
+// -----------------------------------------
+// DIJKSTRA'S ALGORITHM
+// -----------------------------------------
+function dijkstra(start, end) {
+    let distances = {};
+    let visited = new Set();
+    let nodes = Object.keys(graph);
+
+    for (let node of nodes) {
+        distances[node] = Infinity;
+    }
+    distances[start] = 0;
+
+    for (let i = 0; i < nodes.length; i++) {
+        let current = null;
+        let minDistance = Infinity;
+
+        for (let node of nodes) {
+            if (!visited.has(node) && distances[node] < minDistance) {
+                current = node;
+                minDistance = distances[node];
+            }
+        }
+
+        if (current === null) break;
+        visited.add(current);
+
+        for (let neighbor in graph[current]) {
+            let alt = distances[current] + graph[current][neighbor];
+            if (alt < distances[neighbor]) {
+                distances[neighbor] = alt;
+            }
+        }
+    }
+    return distances[end];
+}
+
+// -----------------------------------------
+// UI UTILITIES
+// -----------------------------------------
 function showToast(message, type) {
     var toast = document.getElementById('toast');
     toast.textContent = message;
     toast.className = 'toast ' + type + ' show';
-
-    // Auto-hide after 2.5 seconds
     clearTimeout(toast._timer);
-    toast._timer = setTimeout(function() {
-        toast.className = 'toast';
-    }, 2500);
+    toast._timer = setTimeout(() => { toast.className = 'toast'; }, 2500);
 }
 
-// ---------- Update Rider Count ----------
-function updateCount(count) {
+function updateCount() {
     var el = document.getElementById('rider-count-num');
-    el.textContent = count;
-    // Quick scale animation
+    el.textContent = riders.length;
     el.style.transform = 'scale(1.4)';
-    setTimeout(function() {
+    setTimeout(() => {
         el.style.transition = '0.3s ease';
         el.style.transform = 'scale(1)';
     }, 150);
 }
 
-// ---------- Highlight Output ----------
 function flashOutput() {
     var output = document.getElementById('output');
     output.classList.add('highlight');
-    setTimeout(function() {
-        output.classList.remove('highlight');
-    }, 800);
+    setTimeout(() => { output.classList.remove('highlight'); }, 800);
 }
 
-// ---------- Typewriter Effect ----------
-// Displays text character-by-character for a premium feel
-function typewrite(element, text, speed, callback) {
+function typewrite(element, text, speed) {
     element.textContent = '';
     var i = 0;
     function step() {
@@ -47,22 +92,20 @@ function typewrite(element, text, speed, callback) {
             element.textContent += text.charAt(i);
             i++;
             setTimeout(step, speed);
-        } else if (callback) {
-            callback();
         }
     }
     step();
 }
 
-// ---------- addRider() ----------
-// Reads form inputs, sends a POST request to /add,
-// and displays the updated rider list.
+// -----------------------------------------
+// CORE FUNCTIONS
+// -----------------------------------------
+
 function addRider() {
-    var name = document.getElementById('rider-name').value;
+    var name = document.getElementById('rider-name').value.trim();
     var start = document.getElementById('start-loc').value;
     var end = document.getElementById('end-loc').value;
 
-    // Basic validation
     if (!name) {
         showToast('Please enter a rider name.', 'error');
         return;
@@ -72,112 +115,84 @@ function addRider() {
         return;
     }
 
-    // Disable button while processing
-    var btn = document.getElementById('btn-add');
-    btn.disabled = true;
-    btn.style.opacity = '0.6';
+    // Store rider locally
+    riders.push({ name: name, start: start, end: end });
 
-    // Send POST request to /add
-    fetch('/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, start: start, end: end })
-    })
-    .then(function(response) {
-        return response.json();
-    })
-    .then(function(data) {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-
-        if (data.error) {
-            showToast(data.error, 'error');
-            return;
-        }
-
-        // Display the current list of riders
-        var output = 'Riders Added:\n';
-        output += '─────────────\n';
-        for (var i = 0; i < data.riders.length; i++) {
-            var r = data.riders[i];
-            output += '  ' + (i + 1) + '.  ' + r.name + '  (' + r.start + ' → ' + r.end + ')\n';
-        }
-
-        // Typewriter effect for output
-        typewrite(document.getElementById('output'), output, 8);
-        flashOutput();
-
-        // Update count
-        updateCount(data.riders.length);
-
-        // Show toast
-        showToast('✓ ' + name + ' added successfully', 'success');
-
-        // Clear the name input
-        document.getElementById('rider-name').value = '';
-        document.getElementById('rider-name').focus();
-    })
-    .catch(function(err) {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        showToast('Error: ' + err.message, 'error');
+    // Update Output
+    var output = 'Riders Added:\n';
+    output += '─────────────\n';
+    riders.forEach((r, idx) => {
+        output += `  ${idx + 1}.  ${r.name}  (${r.start} → ${r.end})\n`;
     });
+
+    typewrite(document.getElementById('output'), output, 8);
+    flashOutput();
+    updateCount();
+    showToast('✓ ' + name + ' added successfully', 'success');
+    
+    document.getElementById('rider-name').value = '';
+    document.getElementById('rider-name').focus();
 }
 
-
-// ---------- matchRiders() ----------
-// Sends a GET request to /match,
-// and displays riders + matching results.
 function matchRiders() {
-    // Pulse animation on button
+    if (riders.length < 2) {
+        showToast('Need at least 2 riders to match', 'info');
+        return;
+    }
+
     var btn = document.getElementById('btn-match');
     btn.classList.add('pulse');
-    setTimeout(function() { btn.classList.remove('pulse'); }, 600);
+    setTimeout(() => { btn.classList.remove('pulse'); }, 600);
 
-    fetch('/match')
-    .then(function(response) {
-        return response.json();
-    })
-    .then(function(data) {
-        var output = '';
+    let matches = [];
+    let used = new Set();
 
-        // Show all riders
-        output += 'All Riders:\n';
-        output += '───────────\n';
-        if (data.riders.length === 0) {
-            output += '  (none)\n';
-        } else {
-            for (var i = 0; i < data.riders.length; i++) {
-                var r = data.riders[i];
-                output += '  ' + (i + 1) + '.  ' + r.name + '  (' + r.start + ' → ' + r.end + ')\n';
+    for (let i = 0; i < riders.length; i++) {
+        for (let j = i + 1; j < riders.length; j++) {
+            if (used.has(i) || used.has(j)) continue;
+
+            let rA = riders[i];
+            let rB = riders[j];
+
+            let sameStart = rA.start === rB.start;
+            let sameEnd = rA.end === rB.end;
+
+            if (sameStart || sameEnd) {
+                let distA = dijkstra(rA.start, rA.end);
+                let distB = dijkstra(rB.start, rB.end);
+                let reason = sameStart ? "same start" : "same end";
+
+                matches.push(`${rA.name} (${rA.start}→${rA.end}, dist=${distA}) <-> ${rB.name} (${rB.start}→${rB.end}, dist=${distB}) [Reason: ${reason}]`);
+                used.add(i);
+                used.add(j);
             }
         }
+    }
 
-        output += '\n';
-
-        // Show matches
-        output += 'Matches (Greedy):\n';
-        output += '─────────────────\n';
-        for (var j = 0; j < data.matches.length; j++) {
-            output += '  ● ' + data.matches[j] + '\n';
-        }
-
-        // Typewriter effect
-        typewrite(document.getElementById('output'), output, 6);
-        flashOutput();
-
-        showToast('⚡ Matching complete', 'info');
-    })
-    .catch(function(err) {
-        showToast('Error: ' + err.message, 'error');
+    var output = 'All Riders:\n';
+    output += '───────────\n';
+    riders.forEach((r, idx) => {
+        output += `  ${idx + 1}.  ${r.name}  (${r.start} → ${r.end})\n`;
     });
+
+    output += '\nMatches (Greedy):\n';
+    output += '─────────────────\n';
+    if (matches.length === 0) {
+        output += '  No matching riders found.';
+    } else {
+        matches.forEach(m => {
+            output += '  ● ' + m + '\n';
+        });
+    }
+
+    typewrite(document.getElementById('output'), output, 6);
+    flashOutput();
+    showToast('⚡ Matching complete', 'info');
 }
 
-// ---------- Enter key support ----------
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('rider-name').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            addRider();
-        }
+// Enter key support
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('rider-name').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addRider();
     });
 });
